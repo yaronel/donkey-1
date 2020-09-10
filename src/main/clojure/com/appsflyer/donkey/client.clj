@@ -8,7 +8,6 @@
            (com.appsflyer.donkey.client.ring RingClient)
            (clojure.lang IPersistentMap)))
 
-
 (defn- ^ProxyType keyword->ProxyType [type]
   (ProxyType/valueOf (-> type name .toUpperCase)))
 
@@ -66,12 +65,77 @@
       (DebugUtil/enable))
     config))
 
-(deftype ClientResponseHandler [impl]
+(deftype ClientResponseHandler [fun]
   Handler
   (handle [_this event]
     (if (.succeeded ^AsyncResult event)
-      (impl (.result ^AsyncResult event) nil)
-      (impl nil (ex-info (-> ^AsyncResult event .cause .getMessage) {} (.cause ^AsyncResult event))))))
+      (fun (.result ^AsyncResult event) nil)
+      (fun nil (ex-info (-> ^AsyncResult event .cause .getMessage) {} (.cause ^AsyncResult event))))))
+
+(deftype SuccessHandler [fun]
+  Handler
+  (handle [_this event]
+    (fun (.result ^AsyncResult event))))
+
+(deftype FailureHandler [fun]
+  Handler
+  (handle [_this event]
+    (fun (.cause ^AsyncResult event))))
+
+(defprotocol IFuture
+  (on-complete [this fun])
+  (on-success [this fun])
+  (on-fail [this fun]))
+
+(deftype FutureResult [^Future impl]
+  IFuture
+  (on-complete [this fun]
+    (.onComplete ^Future impl (->CompleteHandler fun))
+    this)
+  (on-success [this fun]
+    (.onSuccess ^Future impl (->SuccessHandler fun))
+    this)
+  (on-fail [this fun]
+    (.onFailure ^Future impl (->FailureHandler fun))
+    this))
+
+(defprotocol IRequest
+  (submit [this] [this body])
+  (submit-form [this body]
+    "Submit a request as `application/x-www-form-urlencoded`. A content-type
+    header will be added to the request. If a `multipart/form-data` content-type
+    header already exists it will be used instead.
+    `body` is a map where all keys and values should be of type string.
+    The body will be urlencoded when it's submitted.")
+  (submit-multipart-form [this body]
+    "Submit a request as `multipart/form-data`. A content-type header will be
+    added to the request. You may use this function to send attributes and
+    upload files.
+    `body` is a map where all keys should be of type string. The values can be
+    either string for simple attributes, or a map of file options when uploading
+    a file.
+
+    The file options map should include the following values:
+    - filename: The name of the file, for example - image.png
+    - pathname: The absolute path of the file.
+      For example: /var/www/html/public/images/image.png
+    - media-type: The MimeType of the file. For example - image/png
+    - upload-as: Upload the file as `binary` or `text`. Default is `binary`"))
+
+(deftype AsyncRequest [^RingClient client ^HttpRequest req]
+  IRequest
+  (submit [_this]
+    (->FutureResult
+      (.send ^RingClient client ^HttpRequest req)))
+  (submit [_this body]
+    (->FutureResult
+      (.send ^RingClient client ^HttpRequest req body)))
+  (submit-form [_this body]
+    (->FutureResult
+      (.sendForm ^RingClient client ^HttpRequest req ^IPersistentMap body)))
+  (submit-multipart-form [_this body]
+    (->FutureResult
+      (.sendMultiPartForm ^RingClient client ^HttpRequest req ^IPersistentMap body))))
 
 (defprotocol HttpClient
   (request [this opts]

@@ -134,4 +134,38 @@
     ;(is (= u (:body @(http/get url2))))
     ;(is (= u (:body (clj-http/get url2))))
 
-    ))
+
+    (let [{:keys [res ex]} @(helper/submit-form {:method :post :uri "/echo"} {"str" encoded})]
+      (is (nil? ex))
+      (is (= expected (get-in (parse-response-body res) [:form-params "str"]))))))
+
+(deftest test-urlencoded-forms
+  (testing "the form fields should be encoded by the client and then decoded
+  by the server so they are identical both places."
+    (let [fields {"name"  "John Smith"
+                  "email" "john@smithcorp.com"
+                  "text"  "Hey! I am John -> {how} about & this?"}]
+      (let [{:keys [res ex]} @(helper/submit-form {:method :post :uri "/echo"} fields)]
+        (is (nil? ex))
+        (let [body (parse-response-body res)]
+          (is (= "application/x-www-form-urlencoded" (get-in body [:headers "content-type"])))
+          (is (= fields (:form-params body))))))))
+
+;(deftest test-json-file-upload
+;  (let [file-opts {"filename"   "upload-text.json"
+;                   "pathname"   (str (System/getProperty "user.dir") "/src/test/resources/upload-text.json")
+;                   "media-type" "application/json"
+;                   "upload-as"  "text"}]
+;    (let [{:keys [res ex]} @(helper/submit-multi-part-form {:method :post :uri "/echo"} {"my-file" file-opts})]
+;      (is (nil? ex))
+;      (let [body (parse-response-body res)]
+;        (is (.startsWith ^String (get-in body [:headers "content-type"]) "multipart/form-data")))))
+;
+;  (let [file-opts {"filename"   "donkey.png"
+;                   "pathname"   (str (System/getProperty "user.dir") "/src/test/resources/donkey.png")
+;                   "media-type" "image/png"
+;                   "upload-as"  "binary"}]
+;    (let [{:keys [res ex]} @(helper/submit-multi-part-form {:method :post :uri "/echo"} {"my-file" file-opts})]
+;      (is (nil? ex))
+;      (let [body (parse-response-body res)]
+;        (is (.startsWith ^String (get-in body [:headers "content-type"]) "multipart/form-data"))))))
