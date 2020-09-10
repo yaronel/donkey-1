@@ -1,12 +1,13 @@
 (ns com.appsflyer.donkey.client
-  (:import (io.vertx.core AsyncResult Handler)
-           (com.appsflyer.donkey.client ClientConfig)
+  (:import (com.appsflyer.donkey.client ClientConfig)
+           (com.appsflyer.donkey.client.ring RingClient)
            (com.appsflyer.donkey.util DebugUtil)
+           (io.vertx.core AsyncResult Handler Future)
            (io.vertx.core.http HttpClientOptions)
            (io.vertx.core.net ProxyOptions ProxyType)
-           (io.vertx.ext.web.client WebClientOptions)
-           (com.appsflyer.donkey.client.ring RingClient)
-           (clojure.lang IPersistentMap)))
+
+           (io.vertx.ext.web.client WebClientOptions HttpRequest)
+           (clojure.lang IPersistentMap IDeref)))
 
 (defn- ^ProxyType keyword->ProxyType [type]
   (ProxyType/valueOf (-> type name .toUpperCase)))
@@ -97,7 +98,13 @@
     this)
   (on-fail [this fun]
     (.onFailure ^Future impl (->FailureHandler fun))
-    this))
+    this)
+
+  IDeref
+  (deref [_this]
+    (let [p (promise)]
+      (.onComplete ^Future impl (->CompleteHandler (fn [res ex] (deliver p (or res ex)))))
+      @p)))
 
 (defprotocol IRequest
   (submit [this] [this body])
@@ -154,3 +161,13 @@
   (stop [_this]
     (.shutdown impl)))
 
+
+(comment
+  (->
+    (request {:method :get :uri "/foo"})                    ; => Create a request. Request not sent yet. Returns Request object
+    (submit #_optional-body)                                ; => Send the request. Returns an AsyncResult.
+    (on-complete (fn [res ex] (println "success or fail"))) ; => Triggers when the request completes. Returns an AsyncResult.
+    (on-success (fn [res] (println "success")))             ; => Triggers when the request is successful. Returns an AsyncResult.
+    (on-fail (fn [ex] (println "fail"))))                   ; => Triggers when the request fails. Returns an AsyncResult.
+
+  )
