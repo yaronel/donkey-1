@@ -26,7 +26,7 @@
   (let [client-options (WebClientOptions.)]
     (when-let [keep-alive (:keep-alive opts)]
       (.setKeepAlive client-options ^boolean keep-alive)
-      (when-let [timeout (:keep-alive-timeout-seconds)]
+      (when-let [timeout (:keep-alive-timeout-seconds opts)]
         (.setKeepAliveTimeout client-options (int timeout))))
     (when-let [proxy (:proxy opts)]
       (.setProxyOptions client-options ^ProxyOptions (get-proxy-options proxy)))
