@@ -45,7 +45,14 @@ public class RingClientImpl implements RingClient {
     
     HttpRequest<Buffer> request = client.request(method, (String) URI.from(opts));
     
-    //todo: Change the API so there is a `send` method after `request` and the user can supply the body. Then we can have sendForm, sendJson, etc'.
+    addPort(request, opts);
+    addHost(request, opts);
+    addSsl(request, opts);
+    addQueryParams(request, opts);
+    addHeaders(request, opts);
+    addBasicAuth(request, opts);
+    addBearerToken(request, opts);
+    addTimeout(request, opts);
     
     try {
       addPort(request, opts);
@@ -104,6 +111,13 @@ public class RingClientImpl implements RingClient {
     var host = (String) HOST.from(opts);
     if (host != null) {
       request.host(host);
+    }
+  }
+  
+  private void addSsl(HttpRequest<Buffer> request, IPersistentMap opts) {
+    var ssl = (Boolean) SSL.from(opts);
+    if (ssl != null) {
+      request.ssl(ssl);
     }
   }
   
