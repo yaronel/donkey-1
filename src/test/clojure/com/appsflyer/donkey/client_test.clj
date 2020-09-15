@@ -3,13 +3,9 @@
             [clj-http.client :as clj-http]
             [com.appsflyer.donkey.client :as client]
             [com.appsflyer.donkey.test-helper :as helper]
-    #_[com.appsflyer.donkey.result :as result]
-            [com.appsflyer.donkey.routes :as routes]
-    #_[com.appsflyer.donkey.client :as client]
-    #_[com.appsflyer.donkey.request :as request])
+            [com.appsflyer.donkey.routes :as routes])
   (:import (io.netty.handler.codec.http HttpResponseStatus)
            (clojure.lang ExceptionInfo)
-    #_(java.util.concurrent CountDownLatch TimeUnit)
            (com.appsflyer.donkey.client.exception UnsupportedDataTypeException)))
 
 
