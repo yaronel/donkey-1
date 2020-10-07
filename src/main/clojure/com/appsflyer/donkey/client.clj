@@ -20,10 +20,11 @@
 
 (defn- ^HttpClientOptions get-client-options
   "Creates and returns an HttpClientOptions object from the opts map.
-  The client options are used to define things such as default host / port
-  when they are not present per request, and different connection settings."
+  The client options are used to define global default settings that will be applied
+  to each request. Some of these settings can be overridden on each request."
   [opts]
   (let [client-options (WebClientOptions.)]
+    (.setForceSni client-options (boolean (:force-sni opts true)))
     (when-let [keep-alive (:keep-alive opts)]
       (.setKeepAlive client-options ^boolean keep-alive)
       (when-let [timeout (:keep-alive-timeout-seconds opts)]
@@ -40,11 +41,10 @@
       (.setConnectTimeout client-options (int (* 1000 connect-timeout))))
     (when-let [idle-timeout (:idle-timeout-seconds opts)]
       (.setIdleTimeout client-options (int idle-timeout)))
-    (when-let [enable-user-agent (:enable-user-agent opts false)]
-      (.setUserAgentEnabled client-options enable-user-agent)
-      (if-let [user-agent (:user-agent opts)]
-        (.setUserAgent client-options user-agent)
-        (.setUserAgent client-options "Donkey-Client")))
+    (.setUserAgentEnabled client-options (:enable-user-agent opts false))
+    (if-let [user-agent (:user-agent opts)]
+      (.setUserAgent client-options user-agent)
+      (.setUserAgent client-options "Donkey-Client"))
     (when (:debug opts)
       (.setLogActivity client-options true))
     (when (:compression opts)

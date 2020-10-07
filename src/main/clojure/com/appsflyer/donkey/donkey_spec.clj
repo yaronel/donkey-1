@@ -124,6 +124,7 @@
                                         ::default-host
                                         ::default-port
                                         ::debug
+                                        ::force-sni
                                         ::keep-alive
                                         ::keep-alive-timeout-seconds
                                         ::connect-timeout-seconds
@@ -172,5 +173,3 @@
                                          ::query-params
                                          ::headers
                                          ::body]))
-
-

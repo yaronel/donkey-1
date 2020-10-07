@@ -36,13 +36,6 @@
               (fn [test-fn] (helper/init-donkey-server test-fn route-descriptors [params/parse-query-params]))
               helper/init-donkey-client)
 
-(defn- make-request [opts]
-  (let [-promise (promise)]
-    (client/request
-      helper/donkey-client
-      (assoc opts :handler (fn [res ex] (deliver -promise {:res res :ex ex}))))
-    -promise))
-
 (deftest test-basic-functionality
   (testing "it should get a 200 response code"
     (let [res @(helper/make-request {:method :get :uri "/"})]
@@ -119,25 +112,9 @@
         (is (= params (:query-string body)))
         (is (= expected (:query-params body)))))))
 
-
-(deftest test-unicode-encoding
+(deftest test-unicode-decoding
   (let [expected "高性能HTTPServer和Client"
-        encoded "%E9%AB%98%E6%80%A7%E8%83%BDHTTPServer%E5%92%8CClient"
-        uri (str "/echo?str=" encoded)
-        opts {:method :get, :uri uri}]
-    (let [{:keys [res ex]} @(make-request opts)]
-      (is (nil? ex))
-      (is (= expected (get-in (parse-response-body res) [:query-params "str"]))))
-    (let [{:keys [res ex]} @(make-request (assoc opts :method :post
-                                                      :query-params {"str" encoded}
-                                                      :uri "/echo"
-                                                      :headers {"content-type" "multipart/form-data"}))]
-      (println (parse-response-body res))
-      (is (nil? ex))
-      (is (= expected (get-in (parse-response-body res) [:form-params "str"]))))
-    ;(is (= u (:body (clj-http/post url {:form-params {:str u}}))))
-    ;(is (= u (:body @(http/get url2))))
-    ;(is (= u (:body (clj-http/get url2))))
+        encoded "%E9%AB%98%E6%80%A7%E8%83%BDHTTPServer%E5%92%8CClient"]
 
     (testing "it should decode urlencoded strings in the url and body"
       (let [res @(helper/make-request {:method :get, :uri (str "/echo?str=" encoded)})]
